@@ -13,9 +13,9 @@ class Repository(typing.Protocol):
     async def get_subcategories(self, category_id: int, page: int = 0): ...
     async def get_products(self, subcategory_id: int, page: int = 0) -> list[Product]: ...
     async def get_product_by_id(self, product_id: str) -> Product: ...
-    async def get_active_promo(self, cur_time: datetime): ...
-    async def get_users_by_batch(self): ...
-    async def add_user(self, user: User): ...
+    async def get_active_promo(self, cur_time: datetime) -> Promo: ...
+    async def get_users_by_batch(self) -> typing.AsyncGenerator[dict, None]: ...
+    async def add_user(self, user: User) -> bool: ...
     async def update_promo(self, promo_id: int | str, cur_time: datetime): ...
 
 
@@ -39,14 +39,19 @@ class RawSQLRepository:
             await cur.execute(query, (category_id,))
             return await cur.fetchall()
 
-    async def get_products(self, subcategory_id: int, page: int = 0):
+    async def get_products(self, subcategory_id: int, page: int = 0, page_size: int = 8):
+        """Получение продуктов с паджинацией для небольших таблиц"""
+
+        offset = page * page_size
         async with self._conn.cursor(row_factory=dict_row) as cur:
             query = '''
                 SELECT id, name, description, price, image
                 FROM panel_product WHERE subcategory_id = %s
                 ORDER BY name
+                LIMIT %s
+                OFFSET %s
             '''
-            await cur.execute(query, (subcategory_id,))
+            await cur.execute(query, (subcategory_id, page_size, offset))
             rows = await cur.fetchall()
             products = [Product.model_validate(row) for row in rows]
             return products

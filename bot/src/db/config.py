@@ -5,7 +5,7 @@ from psycopg_pool import AsyncConnectionPool
 
 from .repository import RawSQLRepository
 
-POSTGRES_CONNINFO = getenv('POSTGRES_CONNINFO')
+POSTGRES_CONNINFO = getenv('PAYMENTS_BOT_POSTGRES_CONNINFO')
 
 
 async def init_pool():
@@ -23,7 +23,7 @@ async def init_pool():
 
 @asynccontextmanager
 async def get_repository(pool: AsyncConnectionPool):
-    await pool.open()
+    await pool.open()  # It is safe to call open() again on a pool already open
     async with pool.connection() as conn:
         repo = RawSQLRepository(conn)
         yield repo

@@ -151,21 +151,36 @@ async def delivery_address_handler(
     fio, phone, address = data.get('fio'), data.get('phone'), data.get('address')
 
     builder = InlineKeyboardBuilder()
-    builder.button(text='Оплатить', callback_data="checkout")
+    builder.button(text='Paymaster', callback_data="checkout-invoice_paymaster")
 
-    await message.answer(
+    cart = await Cart().init(state)
+    text = await get_order_reperesentation(cart)
+    delivery_details = (
         f'ФИО получателя: {fio}\n'
         f'Номер телефона: {phone}\n'
-        f'Пункт выдачи: {address}',
+        f'Пункт выдачи: {address}\n\n'
+        'Выберите способ оплаты:'
+    )
+    await message.answer(
+        text + delivery_details,
         reply_markup=builder.as_markup(),
     )
 
     await state.set_state(Order.checkout)
 
 
-@router.callback_query(F.data.startswith("checkout"))
+async def get_order_reperesentation(cart: Cart):
+    total_price = cart.total()
+    order_list = [f'{pd['name']} ✕ {pd['quantity']} шт.' for _, pd in cart]
+
+    text = '\n'.join(order_list) + f'\n\nСумма к оплате: {total_price}\n\n'
+    return text
+
+
+@router.callback_query(F.data.startswith("checkout-invoice"))
 async def process_buy_handler(callback: CallbackQuery, state: FSMContext):
 
+    pay_option = callback.data.split('_')[1]
     cart = await Cart().init(state)
 
     prices = [
@@ -175,7 +190,11 @@ async def process_buy_handler(callback: CallbackQuery, state: FSMContext):
         )
         for _, product in cart
     ]
-    desc = 'Для оплаты нажмите кнопку Оплатить'
+    desc = 'Для оплаты нажмите на кнопку ниже'
+
+    match pay_option:
+        case 'paymaster':
+            token = PAYMASTER_TOKEN
 
     await callback.answer()
 
@@ -183,7 +202,7 @@ async def process_buy_handler(callback: CallbackQuery, state: FSMContext):
         chat_id=callback.from_user.id,
         title="Оплата заказа",
         description=desc,
-        provider_token=PAYMASTER_TOKEN,
+        provider_token=token,
         currency="RUB",
         prices=prices,
         payload="premium-subscription-1",
