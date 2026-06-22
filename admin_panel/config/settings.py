@@ -1,21 +1,22 @@
 from pathlib import Path
 
-from decouple import config
+from decouple import Csv, config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+_env_prefix = 'PAYMENTS_ADMIN_'
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('DJANGO_SECRET_KEY')
+SECRET_KEY = config(_env_prefix + 'DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
+DEBUG = config(_env_prefix + 'DJANGO_DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['nginx', 'localhost']
+ALLOWED_HOSTS = config(_env_prefix + 'ALLOWED_HOSTS', cast=Csv())
 
 
 # Application definition
@@ -71,11 +72,14 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME'),
-        'HOST': config('DB_HOST', 'localhost'),
-        'USER': config('DB_USER'),
-        'PORT': config('DB_PORT', 5432),
-        'PASSWORD': config('DB_PASSWORD'),
+        'NAME': config(_env_prefix + 'DB_NAME'),
+        'HOST': config(_env_prefix + 'DB_HOST', 'localhost'),
+        'USER': config(_env_prefix + 'DB_USER'),
+        'PORT': config(_env_prefix + 'DB_PORT', 5432),
+        'PASSWORD': config(_env_prefix + 'DB_PASSWORD'),
+        'OPTIONS': {
+            'options': '-c search_path=payments_admin,public'
+        },
     }
 }
 
@@ -114,7 +118,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = 'payments/static/'
 STATIC_ROOT = 'staticfiles/'
 
 # Default primary key field type
