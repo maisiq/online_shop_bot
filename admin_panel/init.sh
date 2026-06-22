@@ -1,6 +1,5 @@
 #!/bin/bash
 
-python manage.py makemigrations
-python manage.py migrate
-
-gunicorn -w 4 -k uvicorn.workers.UvicornWorker config.asgi:application --bind 0.0.0.0:8000
+gunicorn -w "$PAYMENTS_ADMIN_SERVER_WORKERS" \
+-k uvicorn.workers.UvicornWorker config.asgi:application \
+--bind "$PAYMENTS_ADMIN_SERVER_HOST:$PAYMENTS_ADMIN_SERVER_PORT"
